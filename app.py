@@ -5,9 +5,22 @@
 import streamlit as st
 from supabase import create_client, Client
 
-# 1. Supabaseの接続情報（オーナーの環境の値をセット）
-SUPABASE_URL = "https://lomqwzeifmyfrpvezojz.supabase.co"
-SUPABASE_KEY = "YOUR_SUPABASE_ANON_OR_SERVICE_ROLE_KEY"
+# 1. Supabaseの接続情報（Streamlit Cloud の Settings > Secrets から読み込む）
+#    Secretsには以下の形式で登録してください。
+#    SUPABASE_URL = "https://iomqwzeifmyfrpvezojz.supabase.co"
+#    SUPABASE_KEY = "（SupabaseのAPIキー）"
+try:
+    SUPABASE_URL = st.secrets["SUPABASE_URL"]
+    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+except Exception:
+    st.error(
+        "SUPABASE_URL または SUPABASE_KEY がSecretsに設定されていません。\n\n"
+        "Streamlit CloudのSettings > Secretsに以下を登録してください。\n\n"
+        'SUPABASE_URL = "https://iomqwzeifmyfrpvezojz.supabase.co"\n'
+        'SUPABASE_KEY = "（SupabaseのAPIキー）"'
+    )
+    st.stop()
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 st.set_page_config(page_title="Bot Control Panel", layout="centered")
@@ -25,16 +38,16 @@ if bots_data:
     # スマホでも選びやすいセレクトボックス（Bot名の一覧）
     bot_options = {b["bot_name"]: b for b in bots_data}
     selected_bot_name = st.selectbox("書き換えるBotを選択:", list(bot_options.keys()))
-    
+
     current_bot = bot_options[selected_bot_name]
-    
+
     # 現在のプロンプトをテキストエリアに表示（ここで自由に編集）
     new_prompt = st.text_area(
         label="システムプロンプト（指示内容）:",
         value=current_bot.get("system_prompt", ""),
         height=300
     )
-    
+
     # 3. 保存ボタンがポチッと押されたらSupabaseへUpdateをブチ込む
     if st.button("このプロンプトで確定（Supabaseへ保存）", type="primary"):
         try:
