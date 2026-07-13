@@ -5,10 +5,45 @@
 import streamlit as st
 from supabase import create_client, Client
 
+st.set_page_config(page_title="Bot Control Panel", layout="centered")
+
+# ------------------------------------------------------------
+# 0. 簡易ログインゲート（ID・パスワード固定版）
+# ------------------------------------------------------------
+def check_auth() -> bool:
+    if st.session_state.get("authenticated"):
+        return True
+
+    st.title("🔒 ログイン")
+
+    # オーナー指定の固定ID・パスワード
+    valid_user = "id4s"
+    valid_pass = "1013"
+
+    with st.form("login_form"):
+        username = st.text_input("ユーザー名")
+        password = st.text_input("パスワード", type="password")
+        submitted = st.form_submit_button("ログイン")
+
+    if submitted:
+        if username == valid_user and password == valid_pass:
+            st.session_state["authenticated"] = True
+            st.rerun()
+        else:
+            st.error("ユーザー名またはパスワードが違います。")
+
+    return False
+
+
+if not check_auth():
+    st.stop()
+
+# ------------------------------------------------------------
 # 1. Supabaseの接続情報（Streamlit Cloud の Settings > Secrets から読み込む）
 #    Secretsには以下の形式で登録してください。
 #    SUPABASE_URL = "https://iomqwzeifmyfrpvezojz.supabase.co"
 #    SUPABASE_KEY = "（SupabaseのAPIキー：service_role推奨）"
+# ------------------------------------------------------------
 try:
     SUPABASE_URL = st.secrets["SUPABASE_URL"]
     SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
@@ -23,7 +58,6 @@ except Exception:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-st.set_page_config(page_title="Bot Control Panel", layout="centered")
 st.title("🤖 ゴリ押しBot プロンプト管理")
 
 
@@ -217,12 +251,3 @@ with st.expander("➕ 新しいキャラを追加"):
                     st.rerun()
                 except Exception as e:
                     st.error(f"追加に失敗しました: {e}")
-
-# ============================================================
-# 【インフラ配管】どうやってスマホからこれを開くの？
-# ============================================================
-# 1. オーナーのVPSサーバー（またはローカルPC）で上記のコードを `app.py` として保存する。
-# 2. `streamlit run app.py` を実行して、ポート「8501」でWebアプリを着火。
-# 3. いつもの「Cloudflare Tunnel（cloudflared）」を使って、適当なサブドメイン
-#    （例: bot-panel.pages.dev 的なドメイン、または独自ドメイン）をポート8501に土管として繋ぐ。
-# 4. スマホのブラウザからそのURLを開けば、いつでもどこでもワンタップでプロンプトの書き換えが完了！
